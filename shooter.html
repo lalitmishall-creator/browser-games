@@ -409,7 +409,7 @@ function createEnemy(type, x, y) {
     radius: cfg.radius,
     color: cfg.color,
     score: cfg.score,
-    dropsHeart: type === 'rusher' && Math.random() < 1/3,
+    dropsHeart: type === 'rusher' && Math.random() < 1/5,
     walkFrame: 0,
     walkTimer: 0,
     shootTimer: rnd(1, 3),
