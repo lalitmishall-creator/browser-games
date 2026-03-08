@@ -10,7 +10,25 @@ A collection of self-contained browser games. Each game is a **single `.html` fi
 
 - **Run a game:** `open shooter.html` or `open tictactoe.html` (macOS), or just double-click the file.
 - **Deploy:** No build step. The file itself is the artifact.
-- **Git:** Commit and push after every meaningful change. `git push` goes to `origin/main` on GitHub (`lalitmishall-creator/browser-games`).
+
+## Git Discipline (Required)
+
+Commit and push to GitHub continuously throughout all work — not just at the end. Every discrete, working change should be its own commit. This ensures no progress is ever lost and the history is easy to navigate or revert.
+
+**Rules:**
+- Commit after every meaningful unit of work: a feature added, a bug fixed, a screen implemented, a balance tweak, etc.
+- Never batch unrelated changes into one commit.
+- Always push immediately after committing: `git push` → `origin/main` (`lalitmishall-creator/browser-games`).
+- Write commit messages in the imperative, describing *what changed and why* — not just "update file".
+
+**Message format:**
+```
+<short summary under 72 chars>
+
+<optional body explaining motivation or non-obvious details>
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+```
 
 ## Architecture Pattern
 
