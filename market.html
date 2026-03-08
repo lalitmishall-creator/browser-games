@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MARKET DASHBOARD</title>
+<style>
+:root {
+  --bg:       #07070f;
+  --surface:  #0d0d1a;
+  --card:     #111122;
+  --border:   #1c1c33;
+  --text:     #dde1f0;
+  --muted:    #44455a;
+  --dim:      #666880;
+  --green:    #00e87a;
+  --red:      #ff3b3b;
+  --blue:     #3b9eff;
+  --gold:     #ffd94a;
+  --purple:   #9b6bff;
+  --green-bg: rgba(0,232,122,0.07);
+  --red-bg:   rgba(255,59,59,0.07);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Courier New', Courier, monospace;
+  min-height: 100vh;
+  padding: 12px 16px 32px;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 4px;
+  background: linear-gradient(90deg, #3b9eff, #9b6bff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.clocks {
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  color: var(--dim);
+}
+.clock-item { text-align: center; }
+.clock-item .tz { font-size: 9px; color: var(--muted); }
+.clock-item .time { font-size: 13px; color: var(--text); letter-spacing: 1px; }
+
+.status-badges { display: flex; gap: 8px; align-items: center; }
+.badge {
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid;
+}
+.badge.open   { color: var(--green);  border-color: var(--green);  background: var(--green-bg); }
+.badge.closed { color: var(--muted);  border-color: var(--muted);  background: rgba(68,69,90,0.15); }
+.badge.pre    { color: var(--gold);   border-color: var(--gold);   background: rgba(255,217,74,0.07); }
+.badge.post   { color: var(--purple); border-color: var(--purple); background: rgba(155,107,255,0.07); }
+
+.refresh-info { font-size: 10px; color: var(--muted); text-align: right; }
+#refresh-bar-wrap { width: 80px; height: 2px; background: var(--border); border-radius: 1px; margin-top: 3px; }
+#refresh-bar { height: 2px; background: var(--blue); width: 100%; border-radius: 1px; transition: width 1s linear; }
+
+/* ── Section ─────────────────────────────────────────────── */
+.section-title {
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  color: var(--muted);
+  margin: 20px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Index Grid ──────────────────────────────────────────── */
+.index-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.index-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  position: relative;
+  transition: border-color 0.3s;
+  min-width: 0;
+}
+.index-card:hover { border-color: #2a2a50; }
+.index-card.up   { border-left: 3px solid var(--green); }
+.index-card.down { border-left: 3px solid var(--red); }
+.index-card.flat { border-left: 3px solid var(--muted); }
+
+.idx-name  { font-size: 10px; color: var(--dim); letter-spacing: 1px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.idx-price { font-size: 20px; font-weight: bold; color: var(--text); letter-spacing: -0.5px; line-height: 1.1; }
+.idx-change {
+  font-size: 12px;
+  font-weight: bold;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.idx-change.up   { color: var(--green); }
+.idx-change.down { color: var(--red); }
+.idx-change.flat { color: var(--muted); }
+.idx-meta { font-size: 9px; color: var(--muted); margin-top: 6px; line-height: 1.6; }
+.idx-range { display: flex; justify-content: space-between; margin-top: 5px; }
+.idx-range span { font-size: 9px; color: var(--dim); }
+
+.loading-pulse {
+  background: linear-gradient(90deg, var(--card) 25%, var(--border) 50%, var(--card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer { 0%{background-position:200%} 100%{background-position:-200%} }
+
+.placeholder-line {
+  height: 10px;
+  border-radius: 3px;
+  margin: 5px 0;
+}
+
+/* ── Movers ──────────────────────────────────────────────── */
+.movers-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+@media (max-width: 700px) { .movers-grid { grid-template-columns: 1fr; } }
+
+.movers-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.movers-header {
+  padding: 8px 14px;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.movers-header.gainers { background: rgba(0,232,122,0.06); color: var(--green); }
+.movers-header.losers  { background: rgba(255,59,59,0.06);  color: var(--red); }
+.movers-header.active  { background: rgba(59,158,255,0.06); color: var(--blue); }
+
+.mover-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-top: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.mover-row:hover { background: rgba(255,255,255,0.02); }
+.mover-sym  { font-size: 13px; font-weight: bold; color: var(--text); }
+.mover-name { font-size: 9px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mover-price { font-size: 12px; color: var(--dim); text-align: right; }
+.mover-pct  { font-size: 13px; font-weight: bold; text-align: right; min-width: 60px; }
+.mover-pct.up   { color: var(--green); }
+.mover-pct.down { color: var(--red); }
+.mover-vol { font-size: 9px; color: var(--muted); text-align: right; }
+
+/* ── Error / Info ────────────────────────────────────────── */
+.error-bar {
+  background: rgba(255,59,59,0.08);
+  border: 1px solid rgba(255,59,59,0.25);
+  border-radius: 4px;
+  padding: 8px 14px;
+  font-size: 11px;
+  color: #ff8888;
+  margin-bottom: 12px;
+  display: none;
+}
+
+/* ── Footer ──────────────────────────────────────────────── */
+footer {
+  margin-top: 28px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 9px;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ── Scanline overlay ────────────────────────────────────── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── Flash animation on update ───────────────────────────── */
+@keyframes flash-green { 0%,100%{background:transparent} 50%{background:rgba(0,232,122,0.12)} }
+@keyframes flash-red   { 0%,100%{background:transparent} 50%{background:rgba(255,59,59,0.12)} }
+.flash-up   { animation: flash-green 0.6s ease; }
+.flash-down { animation: flash-red   0.6s ease; }
+</style>
+</head>
+<body>
+
+<div class="error-bar" id="error-bar"></div>
+
+<header>
+  <div class="logo">◈ MARKET DASHBOARD</div>
+  <div class="header-right">
+    <div class="clocks">
+      <div class="clock-item">
+        <div class="tz">NEW YORK (ET)</div>
+        <div class="time" id="clock-et">--:--:--</div>
+      </div>
+      <div class="clock-item">
+        <div class="tz">MUMBAI (IST)</div>
+        <div class="time" id="clock-ist">--:--:--</div>
+      </div>
+    </div>
+    <div class="status-badges" id="status-badges">
+      <span class="badge closed" id="badge-us">US ●</span>
+      <span class="badge closed" id="badge-in">IN ●</span>
+    </div>
+    <div class="refresh-info">
+      <div id="last-updated">Updating…</div>
+      <div id="refresh-bar-wrap"><div id="refresh-bar"></div></div>
+    </div>
+  </div>
+</header>
+
+<div class="section-title">US INDICES</div>
+<div class="index-grid" id="us-indices"></div>
+
+<div class="section-title">INDIA INDICES</div>
+<div class="index-grid" id="india-indices"></div>
+
+<div class="section-title">MARKET MOVERS — S&amp;P 500 LARGE CAPS</div>
+<div class="movers-grid">
+  <div class="movers-panel">
+    <div class="movers-header gainers">▲ TOP GAINERS</div>
+    <div id="gainers-list"></div>
+  </div>
+  <div class="movers-panel">
+    <div class="movers-header losers">▼ TOP LOSERS</div>
+    <div id="losers-list"></div>
+  </div>
+  <div class="movers-panel">
+    <div class="movers-header active">◎ MOST ACTIVE</div>
+    <div id="active-list"></div>
+  </div>
+</div>
+
+<footer>
+  <span>Data via Yahoo Finance · 15-min delayed · Not financial advice</span>
+  <span id="fetch-status">—</span>
+</footer>
+
+<script>
+'use strict';
+
+// ── Symbol Definitions ───────────────────────────────────────────────────────
+const US_INDICES = [
+  { symbol: '^GSPC',  label: 'S&P 500'     },
+  { symbol: '^DJI',   label: 'DOW JONES'   },
+  { symbol: '^IXIC',  label: 'NASDAQ COMP' },
+  { symbol: '^NDX',   label: 'NASDAQ 100'  },
+  { symbol: '^RUT',   label: 'RUSSELL 2000'},
+  { symbol: '^VIX',   label: 'VIX'         },
+];
+
+const INDIA_INDICES = [
+  { symbol: '^NSEI',    label: 'NIFTY 50'   },
+  { symbol: '^BSESN',   label: 'SENSEX'     },
+  { symbol: '^NSEBANK', label: 'NIFTY BANK' },
+];
+
+const MOVERS = [
+  { symbol: 'AAPL',  name: 'Apple'            },
+  { symbol: 'MSFT',  name: 'Microsoft'        },
+  { symbol: 'NVDA',  name: 'NVIDIA'           },
+  { symbol: 'AMZN',  name: 'Amazon'           },
+  { symbol: 'GOOGL', name: 'Alphabet'         },
+  { symbol: 'META',  name: 'Meta'             },
+  { symbol: 'TSLA',  name: 'Tesla'            },
+  { symbol: 'JPM',   name: 'JPMorgan Chase'   },
+  { symbol: 'V',     name: 'Visa'             },
+  { symbol: 'UNH',   name: 'UnitedHealth'     },
+  { symbol: 'XOM',   name: 'ExxonMobil'       },
+  { symbol: 'LLY',   name: 'Eli Lilly'        },
+  { symbol: 'AVGO',  name: 'Broadcom'         },
+  { symbol: 'WMT',   name: 'Walmart'          },
+  { symbol: 'MA',    name: 'Mastercard'       },
+  { symbol: 'PG',    name: 'Procter & Gamble' },
+  { symbol: 'HD',    name: 'Home Depot'       },
+  { symbol: 'AMD',   name: 'AMD'              },
+  { symbol: 'NFLX',  name: 'Netflix'          },
+  { symbol: 'BAC',   name: 'Bank of America'  },
+  { symbol: 'GS',    name: 'Goldman Sachs'    },
+  { symbol: 'COST',  name: 'Costco'           },
+  { symbol: 'CRM',   name: 'Salesforce'       },
+  { symbol: 'ABBV',  name: 'AbbVie'           },
+  { symbol: 'MRK',   name: 'Merck'            },
+];
+
+// ── Fetch ────────────────────────────────────────────────────────────────────
+const YF = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+const YF2 = 'https://query2.finance.yahoo.com/v8/finance/chart/';
+
+async function fetchQuote(symbol) {
+  const enc = encodeURIComponent(symbol);
+  const url = `${YF}${enc}?range=1d&interval=5m&includePrePost=false`;
+  let res;
+  try {
+    res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(res.status);
+  } catch(e) {
+    // fallback to query2
+    res = await fetch(`${YF2}${enc}?range=1d&interval=5m&includePrePost=false`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(res.status);
+  }
+
+  const data = await res.json();
+  const result = data?.chart?.result?.[0];
+  if (!result) throw new Error('no result');
+
+  const m = result.meta;
+  const price = m.regularMarketPrice ?? m.chartPreviousClose;
+  const prev  = m.chartPreviousClose ?? m.previousClose ?? price;
+  const change = price - prev;
+  const pct    = prev !== 0 ? (change / prev) * 100 : 0;
+
+  return {
+    symbol:   m.symbol || symbol,
+    price,
+    prev,
+    change,
+    pct,
+    high:     m.regularMarketDayHigh,
+    low:      m.regularMarketDayLow,
+    volume:   m.regularMarketVolume,
+    currency: m.currency || 'USD',
+    state:    m.marketState || 'UNKNOWN',
+  };
+}
+
+// Fetch with retry
+async function fetchSafe(symbol) {
+  try { return await fetchQuote(symbol); }
+  catch(e) { return null; }
+}
+
+// Throttled batch fetch (avoid hammering the API)
+async function fetchBatch(symbols, onProgress) {
+  const BATCH = 5, DELAY = 150;
+  const results = {};
+  for (let i = 0; i < symbols.length; i += BATCH) {
+    const chunk = symbols.slice(i, i + BATCH);
+    const res = await Promise.all(chunk.map(s => fetchSafe(s)));
+    chunk.forEach((s, j) => { if (res[j]) results[s] = res[j]; });
+    if (onProgress) onProgress(Math.min(i + BATCH, symbols.length), symbols.length);
+    if (i + BATCH < symbols.length) await delay(DELAY);
+  }
+  return results;
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Formatting ───────────────────────────────────────────────────────────────
+function fmt(n, decimals = 2) {
+  if (n == null) return '—';
+  return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function fmtPct(n) {
+  if (n == null) return '—';
+  const sign = n >= 0 ? '+' : '';
+  return `${sign}${n.toFixed(2)}%`;
+}
+
+function fmtChange(n) {
+  if (n == null) return '—';
+  const sign = n >= 0 ? '+' : '';
+  return `${sign}${fmt(n)}`;
+}
+
+function fmtVol(n) {
+  if (!n) return '—';
+  if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(0) + 'K';
+  return String(n);
+}
+
+function dir(pct) {
+  if (pct >  0.01) return 'up';
+  if (pct < -0.01) return 'down';
+  return 'flat';
+}
+
+function arrow(pct) {
+  if (pct >  0.01) return '▲';
+  if (pct < -0.01) return '▼';
+  return '–';
+}
+
+// ── Clocks ───────────────────────────────────────────────────────────────────
+function updateClocks() {
+  const now = new Date();
+  const etStr = now.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour12: false });
+  const istStr = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
+  document.getElementById('clock-et').textContent = etStr;
+  document.getElementById('clock-ist').textContent = istStr;
+}
+
+function marketStateUS(state) {
+  if (!state) return 'closed';
+  const s = state.toUpperCase();
+  if (s === 'REGULAR') return 'open';
+  if (s === 'PRE')     return 'pre';
+  if (s === 'POST')    return 'post';
+  return 'closed';
+}
+
+function updateBadges(usState, inState) {
+  const ub = document.getElementById('badge-us');
+  const ib = document.getElementById('badge-in');
+
+  const usClass = marketStateUS(usState);
+  ub.className = `badge ${usClass}`;
+  ub.textContent = `US ${usClass === 'open' ? '●' : usClass === 'pre' ? '◐' : usClass === 'post' ? '◑' : '○'}`;
+
+  const inClass = marketStateUS(inState);
+  ib.className = `badge ${inClass}`;
+  ib.textContent = `IN ${inClass === 'open' ? '●' : '○'}`;
+}
+
+// ── Render Index Cards ────────────────────────────────────────────────────────
+function renderIndexCards(containerId, defs, cache) {
+  const el = document.getElementById(containerId);
+
+  defs.forEach(def => {
+    let card = document.getElementById('card-' + def.symbol);
+    if (!card) {
+      card = document.createElement('div');
+      card.id = 'card-' + def.symbol;
+      card.className = 'index-card loading-pulse';
+      card.innerHTML = renderPlaceholder(def.label);
+      el.appendChild(card);
+    }
+
+    const q = cache[def.symbol];
+    if (!q) return;
+
+    const d = dir(q.pct);
+    const prevClass = card.classList.contains('up') ? 'up' : card.classList.contains('down') ? 'down' : null;
+    const flashClass = d === 'up' ? 'flash-up' : d === 'down' ? 'flash-down' : null;
+
+    card.className = `index-card ${d}`;
+
+    // Price formatting — handle large Indian indices
+    const decimals = q.price >= 1000 ? 2 : 2;
+
+    card.innerHTML = `
+      <div class="idx-name">${def.label}</div>
+      <div class="idx-price">${fmt(q.price, decimals)}</div>
+      <div class="idx-change ${d}">
+        ${arrow(q.pct)} ${fmtChange(q.change)} &nbsp; ${fmtPct(q.pct)}
+      </div>
+      <div class="idx-meta">
+        ${q.high && q.low ? `
+        <div class="idx-range">
+          <span>L ${fmt(q.low, decimals)}</span>
+          <span>H ${fmt(q.high, decimals)}</span>
+        </div>` : ''}
+        ${q.volume ? `<div>VOL ${fmtVol(q.volume)}</div>` : ''}
+      </div>
+    `;
+
+    if (flashClass && prevClass) {
+      card.classList.add(flashClass);
+      setTimeout(() => card.classList.remove(flashClass), 650);
+    }
+  });
+}
+
+function renderPlaceholder(label) {
+  return `
+    <div class="idx-name">${label}</div>
+    <div class="placeholder-line loading-pulse" style="width:70%;height:22px;margin-top:4px;"></div>
+    <div class="placeholder-line loading-pulse" style="width:55%;height:10px;"></div>
+  `;
+}
+
+// ── Render Movers ─────────────────────────────────────────────────────────────
+function renderMovers(cache) {
+  const list = MOVERS
+    .map(m => ({ ...m, q: cache[m.symbol] }))
+    .filter(m => m.q);
+
+  const sorted = [...list].sort((a,b) => b.q.pct - a.q.pct);
+  const byVol  = [...list].sort((a,b) => (b.q.volume||0) - (a.q.volume||0));
+
+  renderMoverList('gainers-list', sorted.slice(0, 5));
+  renderMoverList('losers-list',  sorted.slice(-5).reverse());
+  renderMoverList('active-list',  byVol.slice(0, 5));
+}
+
+function renderMoverList(id, items) {
+  const el = document.getElementById(id);
+  el.innerHTML = items.map(item => {
+    const q = item.q;
+    const d = dir(q.pct);
+    return `
+      <div class="mover-row">
+        <div>
+          <div class="mover-sym">${item.symbol}</div>
+          <div class="mover-name">${item.name}</div>
+        </div>
+        <div>
+          <div class="mover-price">${fmt(q.price)}</div>
+          <div class="mover-vol">${fmtVol(q.volume)}</div>
+        </div>
+        <div class="mover-pct ${d}">${arrow(q.pct)} ${fmtPct(q.pct)}</div>
+      </div>
+    `;
+  }).join('') || '<div style="padding:12px 14px;font-size:11px;color:var(--muted)">Loading…</div>';
+}
+
+// ── Main Refresh Loop ─────────────────────────────────────────────────────────
+const REFRESH_S = 60;
+let refreshTimer = REFRESH_S;
+let cache = {};
+let fetchInProgress = false;
+
+async function refresh() {
+  if (fetchInProgress) return;
+  fetchInProgress = true;
+
+  document.getElementById('last-updated').textContent = 'Updating…';
+  document.getElementById('error-bar').style.display = 'none';
+
+  const allSymbols = [
+    ...US_INDICES.map(d => d.symbol),
+    ...INDIA_INDICES.map(d => d.symbol),
+    ...MOVERS.map(d => d.symbol),
+  ];
+
+  let ok = 0, fail = 0;
+
+  try {
+    const results = await fetchBatch(allSymbols, (done, total) => {
+      document.getElementById('fetch-status').textContent = `Fetching ${done}/${total}…`;
+    });
+
+    // Merge into cache
+    Object.assign(cache, results);
+
+    ok   = Object.keys(results).length;
+    fail = allSymbols.length - ok;
+
+    // Render
+    renderIndexCards('us-indices',    US_INDICES,    cache);
+    renderIndexCards('india-indices', INDIA_INDICES, cache);
+    renderMovers(cache);
+
+    // Update badges from first US index state
+    const usQ = cache['^GSPC'];
+    const inQ = cache['^NSEI'];
+    updateBadges(usQ?.state, inQ?.state);
+
+    const now = new Date().toLocaleTimeString('en-US', { hour12: true });
+    document.getElementById('last-updated').textContent = `Updated ${now}`;
+    document.getElementById('fetch-status').textContent = `${ok} symbols · ${fail} failed`;
+
+    if (fail > ok / 2) {
+      showError(`${fail} symbols failed to load. Yahoo Finance may be rate-limiting. Data shown may be incomplete.`);
+    }
+  } catch(e) {
+    showError(`Fetch error: ${e.message}. Check browser console. Some ad blockers block Yahoo Finance API.`);
+    document.getElementById('last-updated').textContent = 'Fetch failed';
+  }
+
+  fetchInProgress = false;
+  refreshTimer = REFRESH_S;
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-bar');
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+}
+
+// ── Ticker Loop ───────────────────────────────────────────────────────────────
+setInterval(() => {
+  updateClocks();
+  refreshTimer--;
+
+  const bar = document.getElementById('refresh-bar');
+  bar.style.width = (refreshTimer / REFRESH_S * 100) + '%';
+
+  if (refreshTimer <= 0) refresh();
+}, 1000);
+
+// ── Placeholders on Load ──────────────────────────────────────────────────────
+function initPlaceholders() {
+  const usEl = document.getElementById('us-indices');
+  const inEl = document.getElementById('india-indices');
+
+  US_INDICES.forEach(def => {
+    const card = document.createElement('div');
+    card.id = 'card-' + def.symbol;
+    card.className = 'index-card';
+    card.innerHTML = renderPlaceholder(def.label);
+    usEl.appendChild(card);
+  });
+
+  INDIA_INDICES.forEach(def => {
+    const card = document.createElement('div');
+    card.id = 'card-' + def.symbol;
+    card.className = 'index-card';
+    card.innerHTML = renderPlaceholder(def.label);
+    inEl.appendChild(card);
+  });
+
+  ['gainers-list','losers-list','active-list'].forEach(id => {
+    document.getElementById(id).innerHTML =
+      '<div style="padding:12px 14px;font-size:11px;color:var(--muted)">Loading…</div>';
+  });
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+updateClocks();
+initPlaceholders();
+refresh();
+</script>
+</body>
+</html>
